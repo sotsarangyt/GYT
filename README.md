@@ -56,9 +56,10 @@ Bias អាច **កាត់ Risk ប៉ុណ្ណោះ** (`InpBiasMaxMult =
 
 | Input | Default | ន័យ |
 |---|---|---|
+| InpRiskBalance | 10000 | EA គណនា Lot និង Loss limit ដូចជាគណនីមាន $10,000 ទោះបីគណនី Demo មានលុយច្រើនជាងក៏ដោយ (0 = ប្រើ Equity ពិត) |
 | InpRiskPerTradePct | 0.5 | ≈ $50 ក្នុងមួយត្រេដ |
 | InpMaxTotalRiskPct | 1.5 | Risk សរុបអតិបរមា ≈ $150 |
-| InpDailyLossPct / InpWeeklyLossPct | 2 / 5 | ឈប់ត្រេដ ហើយបិទ Position |
+| InpDailyLossPct / InpWeeklyLossPct | 2 / 5 | ឈប់ត្រេដ ហើយបិទ Position។ វាស់តែការខាតរបស់ GYT ប៉ុណ្ណោះ មិនរាប់ EA ផ្សេងទេ |
 | InpMaxSpreadUSD | 0.50 | Spread មាសលើ Exness Pro ធម្មតាទាបជាងនេះ |
 | InpSessionStartGMT / EndGMT | 7 / 17 | 14:00–00:00 ម៉ោងកម្ពុជា |
 | InpFridayCloseGMT | 20 | បិទទាំងអស់នៅថ្ងៃសុក្រ ម៉ោង 03:00 ព្រឹកថ្ងៃសៅរ៍ (កម្ពុជា) |
