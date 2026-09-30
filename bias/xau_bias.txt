@@ -1,0 +1,9 @@
+# GYT Daily Macro Bias for XAUUSD (read by GYT_MultiEngine EA)
+# bias: BULL | BEAR | NEUTRAL | OFF      risk_mult: 0.0 - 1.0
+# valid_until: unix time (UTC). After this the EA treats the bias as stale.
+date=2026-09-30
+bias=BEAR
+risk_mult=0.75
+valid_until=1790856000
+valid_until_utc=2026-10-01 12:00
+note=Fed hiking cycle, US10Y ~5.23% (2007 high), USD +2% in Sept; weak JOLTS/confidence give short relief. NFP Fri Oct 2.
