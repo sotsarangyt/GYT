@@ -16,7 +16,7 @@
 //|  No martingale, no grid, every trade has a stop loss.             |
 //+------------------------------------------------------------------+
 #property copyright "GYT"
-#property version   "1.00"
+#property version   "1.10"
 #property description "GYT Multi-Engine gold EA: regime-aware trend/pullback/range engines with risk brain and macro context."
 
 #include <Trade/Trade.mqh>
@@ -37,7 +37,8 @@ input bool   InpTradeEnabled       = true;     // Allow new trades (false = mana
 input string InpComment            = "GYT";    // Order comment prefix
 
 input group "=== Risk Brain ==="
-input double InpRiskPerTradePct    = 0.5;      // Risk per trade (% of equity)
+input double InpRiskBalance        = 10000;    // Size/limits as if balance = this (0 = real equity)
+input double InpRiskPerTradePct    = 0.5;      // Risk per trade (% of base balance)
 input double InpMaxTotalRiskPct    = 1.5;      // Max open risk, all positions (%)
 input int    InpMaxPositions       = 3;        // Max open positions (all engines)
 input double InpDailyLossPct       = 2.0;      // Daily loss limit (% of day-start equity)
@@ -141,8 +142,9 @@ int      g_d1Dir          = 0;
 // risk state
 long     g_dayId          = -1;
 long     g_weekId         = -1;
-double   g_dayStartEq     = 0.0;
-double   g_weekStartEq    = 0.0;
+double   g_dayPnl         = 0.0;       // this EA only
+double   g_weekPnl        = 0.0;       // this EA only
+datetime g_lastPnlCalc    = 0;
 bool     g_haltDay        = false;
 bool     g_haltWeek       = false;
 double   g_health[4]      = {1.0,1.0,1.0,1.0};
@@ -567,51 +569,75 @@ void ShockCheck()
 //==================================================================
 // Layer 5: Risk brain
 //==================================================================
+// Base capital for sizing and loss limits. With InpRiskBalance > 0 the EA behaves as if
+// the account held that balance, so it can share an account with other EAs.
+double BaseEquity()
+  {
+   if(InpRiskBalance>0) return InpRiskBalance;
+   return AccountInfoDouble(ACCOUNT_EQUITY);
+  }
+
+// Net P/L of this EA only (closed deals since 'from' + floating of open positions)
+double OwnPnL(const datetime from)
+  {
+   double pnl=0.0;
+   if(HistorySelect(from,TimeTradeServer()+60))
+     {
+      int total=HistoryDealsTotal();
+      for(int i=0;i<total;i++)
+        {
+         ulong t=HistoryDealGetTicket(i);
+         if(t==0) continue;
+         if(HistoryDealGetString(t,DEAL_SYMBOL)!=_Symbol) continue;
+         if(!IsOurMagic(HistoryDealGetInteger(t,DEAL_MAGIC))) continue;
+         pnl+=HistoryDealGetDouble(t,DEAL_PROFIT)+HistoryDealGetDouble(t,DEAL_SWAP)+
+              HistoryDealGetDouble(t,DEAL_COMMISSION);
+        }
+     }
+   for(int i=PositionsTotal()-1;i>=0;i--)
+     {
+      ulong t=PositionGetTicket(i);
+      if(t==0 || PositionGetString(POSITION_SYMBOL)!=_Symbol) continue;
+      if(!IsOurMagic(PositionGetInteger(POSITION_MAGIC))) continue;
+      pnl+=PositionGetDouble(POSITION_PROFIT)+PositionGetDouble(POSITION_SWAP);
+     }
+   return pnl;
+  }
+
 void UpdateLossLimits()
   {
    datetime g=GMTNow();
    long day=(long)(g/86400);
    long week=(day+3)/7;                 // Monday-based week number
-   double eq=AccountInfoDouble(ACCOUNT_EQUITY);
+   int off=ServerOffsetHours()*3600;
 
    if(day!=g_dayId)
      {
       g_dayId=day;
-      if(GlobalVariableCheck(GVName("D")) && (long)GlobalVariableGet(GVName("D"))==day)
-         g_dayStartEq=GlobalVariableGet(GVName("DEQ"));
-      else
-        {
-         g_dayStartEq=eq;
-         GlobalVariableSet(GVName("D"),(double)day);
-         GlobalVariableSet(GVName("DEQ"),eq);
-        }
       g_haltDay=false;
       GlobalVariablesDeleteAll("GYT_R_",TimeCurrent()-86400*30);
      }
-   if(week!=g_weekId)
-     {
-      g_weekId=week;
-      if(GlobalVariableCheck(GVName("W")) && (long)GlobalVariableGet(GVName("W"))==week)
-         g_weekStartEq=GlobalVariableGet(GVName("WEQ"));
-      else
-        {
-         g_weekStartEq=eq;
-         GlobalVariableSet(GVName("W"),(double)week);
-         GlobalVariableSet(GVName("WEQ"),eq);
-        }
-      g_haltWeek=false;
-     }
+   if(week!=g_weekId) { g_weekId=week; g_haltWeek=false; }
 
-   if(!g_haltDay && g_dayStartEq>0 && (g_dayStartEq-eq)/g_dayStartEq*100.0>=InpDailyLossPct)
+   // recompute own P/L at most every 5 seconds (HistorySelect is not free)
+   if(TimeLocal()-g_lastPnlCalc<5) return;
+   g_lastPnlCalc=TimeLocal();
+   datetime dayStart =(datetime)(day*86400+off);          // GMT midnight, in server time
+   datetime weekStart=(datetime)((week*7-3)*86400+off);   // Monday 00:00 GMT, in server time
+   g_dayPnl =OwnPnL(dayStart);
+   g_weekPnl=OwnPnL(weekStart);
+   double base=BaseEquity();
+
+   if(!g_haltDay && base>0 && -g_dayPnl/base*100.0>=InpDailyLossPct)
      {
       g_haltDay=true;
-      Print("GYT: daily loss limit hit - no new trades today");
+      Print("GYT: daily loss limit hit (",DoubleToString(g_dayPnl,2),") - no new trades today");
       if(InpCloseOnLossLimit) CloseAll("daily loss limit");
      }
-   if(!g_haltWeek && g_weekStartEq>0 && (g_weekStartEq-eq)/g_weekStartEq*100.0>=InpWeeklyLossPct)
+   if(!g_haltWeek && base>0 && -g_weekPnl/base*100.0>=InpWeeklyLossPct)
      {
       g_haltWeek=true;
-      Print("GYT: weekly loss limit hit - no new trades this week");
+      Print("GYT: weekly loss limit hit (",DoubleToString(g_weekPnl,2),") - no new trades this week");
       if(InpCloseOnLossLimit) CloseAll("weekly loss limit");
      }
   }
@@ -664,7 +690,7 @@ double OpenRiskMoney()
       bool buy=(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY);
       double op=PositionGetDouble(POSITION_PRICE_OPEN), sl=PositionGetDouble(POSITION_SL);
       double v=PositionGetDouble(POSITION_VOLUME);
-      if(sl<=0) { r+=AccountInfoDouble(ACCOUNT_EQUITY)*InpRiskPerTradePct/100.0; continue; }
+      if(sl<=0) { r+=BaseEquity()*InpRiskPerTradePct/100.0; continue; }
       if((buy && sl<op) || (!buy && sl>op)) r+=LossAt(buy,v,op,sl);
      }
    return r;
@@ -747,7 +773,7 @@ bool OpenTrade(const int engine,const int dir,const double slDist,const double t
       return false;
      }
 
-   double eq=AccountInfoDouble(ACCOUNT_EQUITY);
+   double eq=BaseEquity();
    double riskMoney=eq*InpRiskPerTradePct/100.0*MathMin(mult,1.5);
    double room=eq*InpMaxTotalRiskPct/100.0-OpenRiskMoney();
    if(room<=0) { Print("GYT: portfolio risk cap reached"); return false; }
@@ -983,12 +1009,12 @@ void DrawPanel()
    string why="ready";
    bool can=CanOpen(why);
    string s="";
-   s+="GYT Multi-Engine v1.00  |  "+_Symbol+"\n";
+   s+="GYT Multi-Engine v1.10  |  "+_Symbol+"\n";
    s+="Regime: "+RegimeName(g_regime)+"  ER="+DoubleToString(g_er,2)+"  ATRx="+DoubleToString(g_atrRatio,2)+
       "  D1 dir="+(g_d1Dir>0?"UP":(g_d1Dir<0?"DOWN":"FLAT"))+"\n";
    s+="Entries: "+(InpTradeEnabled?(can?"ALLOWED":"BLOCKED - "+why):"DISABLED")+"\n";
-   s+="Day P/L: "+DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY)-g_dayStartEq,2)+
-      "  Week P/L: "+DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY)-g_weekStartEq,2)+
+   s+="GYT Day P/L: "+DoubleToString(g_dayPnl,2)+"  Week P/L: "+DoubleToString(g_weekPnl,2)+
+      "  Base: $"+DoubleToString(BaseEquity(),0)+
       "  Open risk: $"+DoubleToString(OpenRiskMoney(),2)+"\n";
    s+="Health A/B/C: "+DoubleToString(g_health[1],2)+" / "+DoubleToString(g_health[2],2)+" / "+DoubleToString(g_health[3],2)+"\n";
    s+="USD pulse: "+(g_usdOK?DoubleToString(g_usdChangePct,2)+"%":"n/a")+
