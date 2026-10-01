@@ -16,7 +16,7 @@
 //|  No martingale, no grid, every trade has a stop loss.             |
 //+------------------------------------------------------------------+
 #property copyright "GYT"
-#property version   "1.10"
+#property version   "1.20"
 #property description "GYT Multi-Engine gold EA: regime-aware trend/pullback/range engines with risk brain and macro context."
 
 #include <Trade/Trade.mqh>
@@ -25,6 +25,8 @@
 #define ENG_A 1
 #define ENG_B 2
 #define ENG_C 3
+#define ENG_P1 4   // Pulse: TP1 leg
+#define ENG_P2 5   // Pulse: runner leg
 
 enum ENUM_REGIME { REG_NEUTRAL=0, REG_TREND=1, REG_RANGE=2, REG_CHAOS=3 };
 
@@ -92,6 +94,26 @@ input double InpC_RSIBuy           = 40;       // Buy: RSI below (sell: above 10
 input double InpC_MinRR            = 0.8;      // Min reward:risk to mid band
 input int    InpC_TimeStopBars     = 12;       // Close after N H1 bars if not at target
 
+input group "=== Engine P: Pulse intraday (M5) ==="
+input bool   InpUseP               = true;     // Enable Engine P
+input ENUM_TIMEFRAMES InpP_TF      = PERIOD_M5;// Signal timeframe
+input int    InpP_MaxTradesDay     = 10;       // Max Pulse trades per day
+input double InpP_RiskPct          = 0.2;      // Risk per Pulse trade (% of base balance, both legs)
+input double InpP_MinScore         = 70;       // Min Strength Meter score to enter (0-100)
+input double InpP_TP1_R            = 0.7;      // TP1 leg target (R multiple)
+input double InpP_SL_MinATR        = 0.8;      // Min stop (x ATR of signal TF)
+input double InpP_SL_MaxATR        = 2.0;      // Max stop (x ATR of signal TF)
+input double InpP_MaxExtATR        = 2.5;      // Skip if price is this far from EMA20 (x ATR)
+input double InpP_RunTrailATR      = 2.0;      // Runner trailing stop after +1R (x ATR)
+input double InpP_ExitScore        = 60;       // Close runner on opposite strength >= this
+input int    InpP_TP1MaxMin        = 90;       // Close TP1 leg if not hit after N minutes
+input int    InpP_MaxHoldMin       = 360;      // Close runner after N minutes
+input int    InpP_StartGMT         = 7;        // Pulse entries from (GMT hour)
+input int    InpP_EndGMT           = 20;       // Pulse entries until (GMT hour)
+input int    InpP_FlatGMT          = 21;       // Close all Pulse positions at (GMT hour)
+input int    InpP_MaxLossStreak    = 3;        // Stop Pulse for the day after N losses in a row
+input bool   InpP_Log              = true;     // Log every signal to MQL5/Files/GYT_pulse_log.csv
+
 input group "=== Market Context: News Shield ==="
 input bool   InpUseNews            = true;     // Block entries around high-impact USD news (live only)
 input int    InpNewsBeforeMin      = 30;       // Minutes before event
@@ -130,6 +152,7 @@ input bool   InpShowPanel          = true;     // Show status panel
 CTrade   trade;
 
 int  hEMA_D1, hATR_H1, hATR_H4, hEMAf_H1, hEMAs_H1, hRSI_H1, hBB_H1;
+int  hATR_P, hEMA_P, hEMA_P15;
 
 datetime g_lastH1Bar      = 0;
 datetime g_pauseUntil     = 0;
@@ -147,7 +170,7 @@ double   g_weekPnl        = 0.0;       // this EA only
 datetime g_lastPnlCalc    = 0;
 bool     g_haltDay        = false;
 bool     g_haltWeek       = false;
-double   g_health[4]      = {1.0,1.0,1.0,1.0};
+double   g_health[6]      = {1.0,1.0,1.0,1.0,1.0,1.0};
 
 // context state
 double   g_usdChangePct   = 0.0;
@@ -173,6 +196,16 @@ bool     g_biasLoaded     = false;
 string   g_biasError      = "";
 
 datetime g_lastPanel      = 0;
+
+// pulse state
+datetime g_lastPBar       = 0;
+int      g_pTradesToday   = 0;
+int      g_pTP1Today      = 0;
+int      g_pLossToday     = 0;
+int      g_pLossStreak    = 0;
+double   g_pLiveScore     = 0.0;
+int      g_pLiveDir       = 0;
+string   g_pLastSignal    = "none";
 bool     g_isTester       = false;
 
 //==================================================================
@@ -201,7 +234,7 @@ int GMTDow()  { MqlDateTime t; TimeToStruct(GMTNow(),t); return t.day_of_week; }
 
 string GVName(const string key) { return "GYT_"+IntegerToString(InpMagic)+"_"+key; }
 
-bool IsOurMagic(const long magic) { return (magic>InpMagic && magic<=InpMagic+3); }
+bool IsOurMagic(const long magic) { return (magic>InpMagic && magic<=InpMagic+5); }
 int  EngineOf(const long magic)    { return (int)(magic-InpMagic); }
 
 string EngineName(const int e)
@@ -209,6 +242,8 @@ string EngineName(const int e)
    if(e==ENG_A) return "A-Breakout";
    if(e==ENG_B) return "B-Pullback";
    if(e==ENG_C) return "C-Range";
+   if(e==ENG_P1) return "P-Pulse-TP";
+   if(e==ENG_P2) return "P-Pulse-Run";
    return "?";
   }
 
@@ -252,10 +287,14 @@ int OnInit()
    hEMAs_H1= iMA(_Symbol,PERIOD_H1,InpB_SlowEMA,0,MODE_EMA,PRICE_CLOSE);
    hRSI_H1 = iRSI(_Symbol,PERIOD_H1,14,PRICE_CLOSE);
    hBB_H1  = iBands(_Symbol,PERIOD_H1,InpC_BBPeriod,0,InpC_BBDev,PRICE_CLOSE);
+   hATR_P  = iATR(_Symbol,InpP_TF,14);
+   hEMA_P  = iMA(_Symbol,InpP_TF,20,0,MODE_EMA,PRICE_CLOSE);
+   hEMA_P15= iMA(_Symbol,PERIOD_M15,50,0,MODE_EMA,PRICE_CLOSE);
 
    if(hEMA_D1==INVALID_HANDLE || hATR_H1==INVALID_HANDLE || hATR_H4==INVALID_HANDLE ||
       hEMAf_H1==INVALID_HANDLE || hEMAs_H1==INVALID_HANDLE || hRSI_H1==INVALID_HANDLE ||
-      hBB_H1==INVALID_HANDLE)
+      hBB_H1==INVALID_HANDLE || hATR_P==INVALID_HANDLE || hEMA_P==INVALID_HANDLE ||
+      hEMA_P15==INVALID_HANDLE)
      {
       Print("GYT: failed to create indicator handles");
       return INIT_FAILED;
@@ -290,7 +329,8 @@ void OnDeinit(const int reason)
    EventKillTimer();
    IndicatorRelease(hEMA_D1); IndicatorRelease(hATR_H1); IndicatorRelease(hATR_H4);
    IndicatorRelease(hEMAf_H1); IndicatorRelease(hEMAs_H1); IndicatorRelease(hRSI_H1);
-   IndicatorRelease(hBB_H1);
+   IndicatorRelease(hBB_H1); IndicatorRelease(hATR_P); IndicatorRelease(hEMA_P);
+   IndicatorRelease(hEMA_P15);
    Comment("");
   }
 
@@ -320,6 +360,13 @@ void OnTick()
       RefreshContext();
       UpdateEngineHealth();
       if(InpTradeEnabled) RunEngines();
+     }
+
+   datetime pb=iTime(_Symbol,InpP_TF,0);
+   if(pb!=0 && pb!=g_lastPBar)
+     {
+      g_lastPBar=pb;
+      PulseOnNewBar();
      }
 
    if(InpShowPanel && TimeLocal()-g_lastPanel>=1) { DrawPanel(); g_lastPanel=TimeLocal(); }
@@ -374,14 +421,16 @@ double CloseOf(const string sym,const ENUM_TIMEFRAMES tf,const int shift)
    return c[0];
   }
 
-double SyntheticDXY(const int shift)
+double SyntheticDXY(const int shift) { return SyntheticDXYTF(PERIOD_H4,shift); }
+
+double SyntheticDXYTF(const ENUM_TIMEFRAMES tf,const int shift)
   {
-   double eu=CloseOf("EURUSD"+g_suffix,PERIOD_H4,shift);
-   double uj=CloseOf("USDJPY"+g_suffix,PERIOD_H4,shift);
-   double gu=CloseOf("GBPUSD"+g_suffix,PERIOD_H4,shift);
-   double uc=CloseOf("USDCAD"+g_suffix,PERIOD_H4,shift);
-   double us=CloseOf("USDSEK"+g_suffix,PERIOD_H4,shift);
-   double uf=CloseOf("USDCHF"+g_suffix,PERIOD_H4,shift);
+   double eu=CloseOf("EURUSD"+g_suffix,tf,shift);
+   double uj=CloseOf("USDJPY"+g_suffix,tf,shift);
+   double gu=CloseOf("GBPUSD"+g_suffix,tf,shift);
+   double uc=CloseOf("USDCAD"+g_suffix,tf,shift);
+   double us=CloseOf("USDSEK"+g_suffix,tf,shift);
+   double uf=CloseOf("USDCHF"+g_suffix,tf,shift);
    if(eu<=0||uj<=0||gu<=0||uc<=0||us<=0||uf<=0) return 0.0;
    return 50.14348112*MathPow(eu,-0.576)*MathPow(uj,0.136)*MathPow(gu,-0.119)*
           MathPow(uc,0.091)*MathPow(us,0.042)*MathPow(uf,0.036);
@@ -753,9 +802,15 @@ bool CanOpen(string &why)
    string nw;
    if(NewsBlocked(nw)) { why="news: "+nw; return false; }
    if(g_regime==REG_CHAOS) { why="regime CHAOS"; return false; }
-   int d;
-   if(CountOurPositions(0,d)>=InpMaxPositions) { why="max positions"; return false; }
+   if(CountCorePositions()>=InpMaxPositions) { why="max positions"; return false; }
    return true;
+  }
+
+int CountCorePositions()
+  {
+   int n=0, d;
+   for(int e=ENG_A;e<=ENG_C;e++) n+=CountOurPositions(e,d);
+   return n;
   }
 
 bool OpenTrade(const int engine,const int dir,const double slDist,const double tpDist)
@@ -903,12 +958,241 @@ void EngineC(const double atr)
   }
 
 //==================================================================
+// Engine P: Pulse (intraday, M5) - Strength Meter, TP1 leg + runner
+//==================================================================
+// Strength Meter 0-100 for bar 'shift' of the signal timeframe.
+// Components: displacement 25, range expansion 15, tick-volume surge 20,
+// close location 10, trend alignment 20, DXY confirmation 10.
+double PulseScore(const int shift,int &dir,string &parts)
+  {
+   dir=0; parts="";
+   double o=iOpen(_Symbol,InpP_TF,shift), h=iHigh(_Symbol,InpP_TF,shift);
+   double l=iLow(_Symbol,InpP_TF,shift),  c=iClose(_Symbol,InpP_TF,shift);
+   double atr=Val(hATR_P,0,shift+1);
+   if(o<=0 || h<=l || !Ok(atr) || atr<=0) return 0.0;
+   double body=c-o;
+   if(MathAbs(body)<1e-9) return 0.0;
+   dir=(body>0 ? 1 : -1);
+
+   double disp=MathMin(MathAbs(body)/atr,2.0)/2.0;
+   double rng =MathMin((h-l)/atr,2.5)/2.5;
+
+   double vsum=0; int vn=0;
+   for(int i=shift+1;i<=shift+48;i++) { long v=iVolume(_Symbol,InpP_TF,i); if(v>0) { vsum+=(double)v; vn++; } }
+   double vavg=(vn>0 ? vsum/vn : 0);
+   double vol=(vavg>0 ? MathMin((double)iVolume(_Symbol,InpP_TF,shift)/vavg,3.0)/3.0 : 0.5);
+
+   double loc=(dir>0 ? (c-l)/(h-l) : (h-c)/(h-l));
+
+   double trend=0.0;
+   double e0=Val(hEMA_P,0,shift), e3=Val(hEMA_P,0,shift+3);
+   if(Ok(e0) && Ok(e3) && ((dir>0 && c>e0 && e0>e3) || (dir<0 && c<e0 && e0<e3))) trend+=0.5;
+   double m1=Val(hEMA_P15,0,1), m4=Val(hEMA_P15,0,4);
+   if(Ok(m1) && Ok(m4) && ((dir>0 && m1>m4) || (dir<0 && m1<m4))) trend+=0.5;
+
+   double dxy=0.5;
+   double d0=SyntheticDXYTF(InpP_TF,shift), d1=SyntheticDXYTF(InpP_TF,shift+1);
+   if(d0>0 && d1>0)
+     {
+      double ch=(d0/d1-1.0)*10000.0;               // basis points
+      if(MathAbs(ch)<0.5) dxy=0.5;
+      else dxy=((ch<0 && dir>0) || (ch>0 && dir<0)) ? 1.0 : 0.0;
+     }
+
+   double score=25*disp+15*rng+20*vol+10*loc+20*trend+10*dxy;
+   parts=StringFormat("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f",disp,rng,vol,loc,trend,dxy);
+   return score;
+  }
+
+// today's Pulse statistics from history (TP1 legs define a trade)
+void PulseStats()
+  {
+   g_pTradesToday=0; g_pTP1Today=0; g_pLossToday=0; g_pLossStreak=0;
+   datetime dayStart=(datetime)((long)(GMTNow()/86400)*86400+ServerOffsetHours()*3600);
+   if(!HistorySelect(dayStart,TimeTradeServer()+60)) return;
+   int total=HistoryDealsTotal();
+   for(int i=0;i<total;i++)
+     {
+      ulong t=HistoryDealGetTicket(i);
+      if(t==0 || HistoryDealGetString(t,DEAL_SYMBOL)!=_Symbol) continue;
+      if(HistoryDealGetInteger(t,DEAL_MAGIC)!=InpMagic+ENG_P1) continue;
+      long entry=HistoryDealGetInteger(t,DEAL_ENTRY);
+      if(entry==DEAL_ENTRY_IN) { g_pTradesToday++; continue; }
+      if(entry!=DEAL_ENTRY_OUT && entry!=DEAL_ENTRY_OUT_BY) continue;
+      double p=HistoryDealGetDouble(t,DEAL_PROFIT)+HistoryDealGetDouble(t,DEAL_SWAP)+HistoryDealGetDouble(t,DEAL_COMMISSION);
+      if(p>0) { g_pTP1Today++; g_pLossStreak=0; }
+      else    { g_pLossToday++; g_pLossStreak++; }
+     }
+  }
+
+int CountPulse(const int engine)
+  {
+   int d;
+   return CountOurPositions(engine,d);
+  }
+
+void ClosePulse(const string reason)
+  {
+   for(int i=PositionsTotal()-1;i>=0;i--)
+     {
+      ulong t=PositionGetTicket(i);
+      if(t==0 || PositionGetString(POSITION_SYMBOL)!=_Symbol) continue;
+      long mg=PositionGetInteger(POSITION_MAGIC);
+      if(mg!=InpMagic+ENG_P1 && mg!=InpMagic+ENG_P2) continue;
+      trade.SetExpertMagicNumber(mg);
+      trade.PositionClose(t);
+     }
+   Print("GYT Pulse: closed all Pulse positions (",reason,")");
+  }
+
+void PulseLog(const string line)
+  {
+   if(!InpP_Log) return;
+   int fh=FileOpen("GYT_pulse_log.csv",FILE_READ|FILE_WRITE|FILE_TXT|FILE_ANSI|FILE_SHARE_READ);
+   if(fh==INVALID_HANDLE) return;
+   if(FileSize(fh)==0)
+      FileWriteString(fh,"server_time,dir,score,disp,range,volume,closeloc,trend,dxy,action,entry,sl,tp1,lots\r\n");
+   FileSeek(fh,0,SEEK_END);
+   FileWriteString(fh,line+"\r\n");
+   FileClose(fh);
+  }
+
+bool CanOpenPulse(string &why)
+  {
+   if(!InpUseP || !InpTradeEnabled) { why="disabled"; return false; }
+   if(g_haltDay)  { why="daily loss limit"; return false; }
+   if(g_haltWeek) { why="weekly loss limit"; return false; }
+   if(TimeTradeServer()<g_pauseUntil) { why="paused: "+g_pauseReason; return false; }
+   int h=GMTHour(), dow=GMTDow();
+   if(dow==0 || dow==6) { why="weekend"; return false; }
+   if(h<InpP_StartGMT || h>=InpP_EndGMT) { why="outside pulse session"; return false; }
+   if(dow==5 && h>=InpFridayNoEntryGMT) { why="Friday cutoff"; return false; }
+   if(Spread()>InpMaxSpreadUSD) { why="spread"; return false; }
+   string nw;
+   if(NewsBlocked(nw)) { why="news: "+nw; return false; }
+   if(g_regime==REG_CHAOS) { why="regime CHAOS"; return false; }
+   if(g_pTradesToday>=InpP_MaxTradesDay) { why="max trades today"; return false; }
+   if(g_pLossStreak>=InpP_MaxLossStreak) { why="loss streak"; return false; }
+   if(CountPulse(ENG_P1)>0) { why="TP1 leg open"; return false; }
+   if(CountPulse(ENG_P2)>=2) { why="2 runners open"; return false; }
+   return true;
+  }
+
+void PulseOnNewBar()
+  {
+   PulseStats();
+
+   // live meter for the panel (forming bar)
+   string lp;
+   g_pLiveScore=PulseScore(0,g_pLiveDir,lp);
+
+   // flatten time / Friday
+   int h=GMTHour();
+   if((h>=InpP_FlatGMT || (GMTDow()==5 && h>=InpFridayCloseGMT && InpFridayCloseGMT>=0)) &&
+      (CountPulse(ENG_P1)+CountPulse(ENG_P2))>0)
+      ClosePulse("end of pulse day");
+
+   int dir; string parts;
+   double score=PulseScore(1,dir,parts);
+   if(dir==0) return;
+
+   // runner exit on strong opposite move
+   if(score>=InpP_ExitScore)
+     {
+      for(int i=PositionsTotal()-1;i>=0;i--)
+        {
+         ulong t=PositionGetTicket(i);
+         if(t==0 || PositionGetString(POSITION_SYMBOL)!=_Symbol) continue;
+         if(PositionGetInteger(POSITION_MAGIC)!=InpMagic+ENG_P2) continue;
+         int pd=(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY ? 1 : -1);
+         if(pd!=dir)
+           {
+            trade.SetExpertMagicNumber(InpMagic+ENG_P2);
+            if(trade.PositionClose(t)) PrintFormat("GYT Pulse: runner closed, opposite strength %.0f",score);
+           }
+        }
+     }
+
+   if(score<InpP_MinScore) return;
+   string stamp=TimeToString(iTime(_Symbol,InpP_TF,1),TIME_DATE|TIME_MINUTES);
+   string head=stamp+","+(dir>0?"BUY":"SELL")+","+DoubleToString(score,1)+","+parts;
+   g_pLastSignal=stamp+" "+(dir>0?"BUY":"SELL")+" score "+DoubleToString(score,0);
+
+   string why;
+   if(!CanOpenPulse(why)) { PulseLog(head+",skip:"+why+",,,,"); g_pLastSignal+=" (skip: "+why+")"; return; }
+
+   double atr=Val(hATR_P,0,1), ema=Val(hEMA_P,0,1);
+   double c1=iClose(_Symbol,InpP_TF,1), l1=iLow(_Symbol,InpP_TF,1), h1=iHigh(_Symbol,InpP_TF,1);
+   if(!Ok(atr) || atr<=0 || !Ok(ema)) return;
+   if(MathAbs(c1-ema)>InpP_MaxExtATR*atr) { PulseLog(head+",skip:overextended,,,,"); g_pLastSignal+=" (skip: overextended)"; return; }
+   if(HasOpposite(dir)) { PulseLog(head+",skip:opposite open,,,,"); g_pLastSignal+=" (skip: opposite open)"; return; }
+
+   string ctx;
+   double mult=ContextMult(dir,ctx);
+   if(mult<InpMinRiskFactor) { PulseLog(head+",skip:context x"+DoubleToString(mult,2)+",,,,"); g_pLastSignal+=" (skip: context)"; return; }
+
+   bool buy=(dir>0);
+   double price=buy ? SymbolInfoDouble(_Symbol,SYMBOL_ASK) : SymbolInfoDouble(_Symbol,SYMBOL_BID);
+   double sd=buy ? price-(l1-0.2*atr) : (h1+0.2*atr)-price;
+   double pt=SymbolInfoDouble(_Symbol,SYMBOL_POINT);
+   double minStop=(SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL)+5)*pt+Spread();
+   sd=MathMax(MathMin(MathMax(sd,InpP_SL_MinATR*atr),InpP_SL_MaxATR*atr),minStop);
+   int digits=(int)SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
+   double sl =NormalizeDouble(buy ? price-sd : price+sd,digits);
+   double tp1=NormalizeDouble(buy ? price+MathMax(InpP_TP1_R*sd,minStop) : price-MathMax(InpP_TP1_R*sd,minStop),digits);
+
+   double base=BaseEquity();
+   double riskMoney=base*InpP_RiskPct/100.0*MathMin(mult,1.0);
+   double room=base*InpMaxTotalRiskPct/100.0-OpenRiskMoney();
+   if(room<=0) { PulseLog(head+",skip:risk cap,,,,"); return; }
+   riskMoney=MathMin(riskMoney,room);
+   double lossPerLot=LossAt(buy,1.0,price,sl);
+   if(lossPerLot<=0) return;
+
+   double mn=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
+   double total=riskMoney/lossPerLot;
+   double v1=NormalizeVolume(total/2.0);
+   double v2=NormalizeVolume(total-v1);
+   if(v1<=0)
+     {
+      if(mn*lossPerLot<=riskMoney*1.2) { v1=mn; v2=0; }
+      else { PulseLog(head+",skip:min lot > risk,,,,"); return; }
+     }
+
+   double margin=0.0;
+   if(OrderCalcMargin(buy?ORDER_TYPE_BUY:ORDER_TYPE_SELL,_Symbol,v1+v2,price,margin) &&
+      margin>AccountInfoDouble(ACCOUNT_MARGIN_FREE)*0.8) { PulseLog(head+",skip:margin,,,,"); return; }
+
+   string tag=" s"+DoubleToString(score,0);
+   trade.SetExpertMagicNumber(InpMagic+ENG_P1);
+   bool ok1=buy ? trade.Buy(v1,_Symbol,0.0,sl,tp1,InpComment+"-P-TP"+tag) : trade.Sell(v1,_Symbol,0.0,sl,tp1,InpComment+"-P-TP"+tag);
+   bool ok2=true;
+   if(ok1 && v2>0)
+     {
+      trade.SetExpertMagicNumber(InpMagic+ENG_P2);
+      ok2=buy ? trade.Buy(v2,_Symbol,0.0,sl,0.0,InpComment+"-P-Run"+tag) : trade.Sell(v2,_Symbol,0.0,sl,0.0,InpComment+"-P-Run"+tag);
+     }
+   PulseLog(head+","+(ok1?"OPEN":"FAIL "+IntegerToString(trade.ResultRetcode()))+","+
+            DoubleToString(price,digits)+","+DoubleToString(sl,digits)+","+DoubleToString(tp1,digits)+","+
+            DoubleToString(v1+v2,2));
+   if(ok1)
+     {
+      g_pTradesToday++;
+      PrintFormat("GYT Pulse: %s score %.0f lots %.2f+%.2f SL=%.2f TP1=%.2f risk=$%.2f [%s]",
+                  buy?"BUY":"SELL",score,v1,v2,sl,tp1,(v1+v2)*lossPerLot,ctx);
+     }
+   else Print("GYT Pulse: order failed ",trade.ResultRetcode()," ",trade.ResultRetcodeDescription());
+   if(!ok2) Print("GYT Pulse: runner order failed ",trade.ResultRetcode());
+  }
+
+//==================================================================
 // Position management: breakeven, trailing, time stops
 //==================================================================
 void ManagePositions()
   {
-   double atr=ATR_H1(1);
-   if(!Ok(atr) || atr<=0) return;
+   double atrH=ATR_H1(1), atrP=Val(hATR_P,0,1);
+   if(!Ok(atrH) || atrH<=0) return;
+   if(!Ok(atrP) || atrP<=0) atrP=atrH/3.0;
    double pt=SymbolInfoDouble(_Symbol,SYMBOL_POINT);
    int digits=(int)SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
    double minStop=(SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL)+5)*pt;
@@ -920,6 +1204,7 @@ void ManagePositions()
       long mg=PositionGetInteger(POSITION_MAGIC);
       if(!IsOurMagic(mg)) continue;
       int e=EngineOf(mg);
+      double atr=(e>=ENG_P1 ? atrP : atrH);
       bool buy=(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY);
       double op=PositionGetDouble(POSITION_PRICE_OPEN);
       double sl=PositionGetDouble(POSITION_SL), tp=PositionGetDouble(POSITION_TP);
@@ -943,6 +1228,9 @@ void ManagePositions()
       if(e==ENG_A && bars>=InpA_TimeStopBars && profR<0.5) timeUp=true;
       if(e==ENG_B && bars>=InpB_TimeStopBars && profR<0.5) timeUp=true;
       if(e==ENG_C && bars>=InpC_TimeStopBars) timeUp=true;
+      int mins=(int)((TimeTradeServer()-(datetime)PositionGetInteger(POSITION_TIME))/60);
+      if(e==ENG_P1 && mins>=InpP_TP1MaxMin) timeUp=true;
+      if(e==ENG_P2 && mins>=InpP_MaxHoldMin) timeUp=true;
       if(timeUp)
         {
          trade.SetExpertMagicNumber(mg);
@@ -952,6 +1240,11 @@ void ManagePositions()
 
       // stop management
       double newSL=sl;
+      if(e==ENG_P2 && profR>=InpP_TP1_R)                 // TP1 reached: runner can no longer lose
+        {
+         double be=buy ? op+0.05*R : op-0.05*R;
+         if(buy ? (sl<be) : (sl>be || sl==0)) newSL=be;
+        }
       if(profR>=1.0)
         {
          double be=buy ? op+0.1*R : op-0.1*R;            // breakeven + a little
@@ -960,6 +1253,7 @@ void ManagePositions()
       double trailK=0.0;
       if(e==ENG_A && profR>=1.0) trailK=InpA_Trail_ATR;
       if(e==ENG_B && profR>=1.5) trailK=InpB_Trail_ATR;
+      if(e==ENG_P2 && profR>=1.0) trailK=InpP_RunTrailATR;
       if(trailK>0)
         {
          double tr=buy ? px-trailK*atr : px+trailK*atr;
@@ -1009,7 +1303,7 @@ void DrawPanel()
    string why="ready";
    bool can=CanOpen(why);
    string s="";
-   s+="GYT Multi-Engine v1.10  |  "+_Symbol+"\n";
+   s+="GYT Multi-Engine v1.20  |  "+_Symbol+"\n";
    s+="Regime: "+RegimeName(g_regime)+"  ER="+DoubleToString(g_er,2)+"  ATRx="+DoubleToString(g_atrRatio,2)+
       "  D1 dir="+(g_d1Dir>0?"UP":(g_d1Dir<0?"DOWN":"FLAT"))+"\n";
    s+="Entries: "+(InpTradeEnabled?(can?"ALLOWED":"BLOCKED - "+why):"DISABLED")+"\n";
@@ -1027,7 +1321,16 @@ void DrawPanel()
       if(g_biasNote!="") s+="  "+g_biasNote+"\n";
       s+="Next USD news: "+NextNews()+"\n";
      }
-   s+="Mult buy/sell: "+DoubleToString(BiasMult(1),2)+" / "+DoubleToString(BiasMult(-1),2);
+   s+="Mult buy/sell: "+DoubleToString(BiasMult(1),2)+" / "+DoubleToString(BiasMult(-1),2)+"\n";
+   if(InpUseP)
+     {
+      s+="Pulse strength (live "+EnumToString(InpP_TF)+"): "+DoubleToString(g_pLiveScore,0)+" "+
+         (g_pLiveDir>0?"UP":(g_pLiveDir<0?"DOWN":"-"))+"   entry >= "+DoubleToString(InpP_MinScore,0)+"\n";
+      s+="Pulse today: trades "+IntegerToString(g_pTradesToday)+"/"+IntegerToString(InpP_MaxTradesDay)+
+         "  TP1 hit "+IntegerToString(g_pTP1Today)+"  losses "+IntegerToString(g_pLossToday)+
+         "  streak "+IntegerToString(g_pLossStreak)+"\n";
+      s+="Pulse last signal: "+g_pLastSignal;
+     }
    Comment(s);
   }
 //+------------------------------------------------------------------+
