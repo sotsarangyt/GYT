@@ -15,7 +15,14 @@ EA ស្វ័យប្រវត្តិ ១០០% ដែលរួមបញ�
 
 ---
 
-## 📥 ដំឡើង (ធ្វើតែម្តង)
+## ⚡ ដំឡើង ឬ Update ដោយចុចពីរដងតែប៉ុណ្ណោះ (ងាយបំផុត)
+
+1. ទាញយក [`tools/GYT_Install.bat`](tools/GYT_Install.bat) ទៅ Desktop
+2. ចុចពីរដងលើ File នោះ។ បើលោត **"Windows protected your PC"** → ចុច **More info** → **Run anyway**
+3. វាទាញយក EA ចុងក្រោយពី GitHub, ដាក់ចូល MT5 ទាំងអស់ក្នុងកុំព្យូទ័រ, ហើយ Compile ដោយស្វ័យប្រវត្តិ។ EA ដែលនៅលើ Chart ស្រាប់ នឹង Reload ជា Version ថ្មីដោយខ្លួនឯង
+4. ពេលមាន Version ថ្មី គ្រាន់តែចុចពីរដងលើ File ដដែលម្តងទៀត
+
+## 📥 ដំឡើងដោយដៃ
 
 1. ទាញយក [`MQL5/Experts/GYT/GYT_MultiEngine.mq5`](MQL5/Experts/GYT/GYT_MultiEngine.mq5)
 2. បើក MT5 → **File → Open Data Folder** → ចូល `MQL5/Experts/` → បង្កើត Folder `GYT` → ដាក់ File ចូល
