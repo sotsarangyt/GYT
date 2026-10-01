@@ -16,7 +16,7 @@
 //|  No martingale, no grid, every trade has a stop loss.             |
 //+------------------------------------------------------------------+
 #property copyright "GYT"
-#property version   "1.20"
+#property version   "1.21"
 #property description "GYT Multi-Engine gold EA: regime-aware trend/pullback/range engines with risk brain and macro context."
 
 #include <Trade/Trade.mqh>
@@ -99,11 +99,15 @@ input bool   InpUseP               = true;     // Enable Engine P
 input ENUM_TIMEFRAMES InpP_TF      = PERIOD_M5;// Signal timeframe
 input int    InpP_MaxTradesDay     = 10;       // Max Pulse trades per day
 input double InpP_RiskPct          = 0.2;      // Risk per Pulse trade (% of base balance, both legs)
-input double InpP_MinScore         = 70;       // Min Strength Meter score to enter (0-100)
+input double InpP_MinScore         = 70;       // Max entry threshold (0-100); adaptive threshold never goes above
+input bool   InpP_Adaptive         = true;     // Adaptive threshold: enter on the strongest moves of recent bars
+input double InpP_TopPct           = 12.0;     // Adaptive: enter when score is in the top X% of recent bars
+input double InpP_ScoreFloor       = 55;       // Adaptive: never enter below this score
+input int    InpP_AdaptBars        = 144;      // Adaptive: number of recent bars (144 x M5 = 12 h)
 input double InpP_TP1_R            = 0.7;      // TP1 leg target (R multiple)
 input double InpP_SL_MinATR        = 0.8;      // Min stop (x ATR of signal TF)
 input double InpP_SL_MaxATR        = 2.0;      // Max stop (x ATR of signal TF)
-input double InpP_MaxExtATR        = 2.5;      // Skip if price is this far from EMA20 (x ATR)
+input double InpP_MaxExtATR        = 4.0;      // Skip if price is this far from EMA20 (x ATR)
 input double InpP_RunTrailATR      = 2.0;      // Runner trailing stop after +1R (x ATR)
 input double InpP_ExitScore        = 60;       // Close runner on opposite strength >= this
 input int    InpP_TP1MaxMin        = 90;       // Close TP1 leg if not hit after N minutes
@@ -206,6 +210,8 @@ int      g_pLossStreak    = 0;
 double   g_pLiveScore     = 0.0;
 int      g_pLiveDir       = 0;
 string   g_pLastSignal    = "none";
+double   g_pScores[];                  // recent closed-bar scores (oldest first)
+double   g_pThreshold     = 70.0;
 bool     g_isTester       = false;
 
 //==================================================================
@@ -1078,6 +1084,37 @@ bool CanOpenPulse(string &why)
    return true;
   }
 
+// adaptive entry threshold from the distribution of recent scores
+void PulseUpdateThreshold(const double newest)
+  {
+   int n=ArraySize(g_pScores);
+   if(n==0)
+     {
+      // seed with history on the first call
+      for(int sh=InpP_AdaptBars+1;sh>=2;sh--)
+        {
+         int d; string pp;
+         double sc=PulseScore(sh,d,pp);
+         int k=ArraySize(g_pScores);
+         ArrayResize(g_pScores,k+1);
+         g_pScores[k]=sc;
+        }
+      n=ArraySize(g_pScores);
+     }
+   ArrayResize(g_pScores,n+1);
+   g_pScores[n]=newest;
+   n++;
+   if(n>InpP_AdaptBars) { ArrayRemove(g_pScores,0,n-InpP_AdaptBars); n=InpP_AdaptBars; }
+
+   if(!InpP_Adaptive || n<20) { g_pThreshold=InpP_MinScore; return; }
+   double tmp[];
+   ArrayCopy(tmp,g_pScores);
+   ArraySort(tmp);
+   int idx=(int)MathFloor((1.0-InpP_TopPct/100.0)*(n-1));
+   idx=(int)MathMax(0,MathMin(n-1,idx));
+   g_pThreshold=MathMin(InpP_MinScore,MathMax(InpP_ScoreFloor,tmp[idx]));
+  }
+
 void PulseOnNewBar()
   {
    PulseStats();
@@ -1094,6 +1131,7 @@ void PulseOnNewBar()
 
    int dir; string parts;
    double score=PulseScore(1,dir,parts);
+   PulseUpdateThreshold(score);
    if(dir==0) return;
 
    // runner exit on strong opposite move
@@ -1113,7 +1151,7 @@ void PulseOnNewBar()
         }
      }
 
-   if(score<InpP_MinScore) return;
+   if(score<g_pThreshold) return;
    string stamp=TimeToString(iTime(_Symbol,InpP_TF,1),TIME_DATE|TIME_MINUTES);
    string head=stamp+","+(dir>0?"BUY":"SELL")+","+DoubleToString(score,1)+","+parts;
    g_pLastSignal=stamp+" "+(dir>0?"BUY":"SELL")+" score "+DoubleToString(score,0);
@@ -1303,7 +1341,7 @@ void DrawPanel()
    string why="ready";
    bool can=CanOpen(why);
    string s="";
-   s+="GYT Multi-Engine v1.20  |  "+_Symbol+"\n";
+   s+="GYT Multi-Engine v1.21  |  "+_Symbol+"\n";
    s+="Regime: "+RegimeName(g_regime)+"  ER="+DoubleToString(g_er,2)+"  ATRx="+DoubleToString(g_atrRatio,2)+
       "  D1 dir="+(g_d1Dir>0?"UP":(g_d1Dir<0?"DOWN":"FLAT"))+"\n";
    s+="Entries: "+(InpTradeEnabled?(can?"ALLOWED":"BLOCKED - "+why):"DISABLED")+"\n";
@@ -1325,7 +1363,7 @@ void DrawPanel()
    if(InpUseP)
      {
       s+="Pulse strength (live "+EnumToString(InpP_TF)+"): "+DoubleToString(g_pLiveScore,0)+" "+
-         (g_pLiveDir>0?"UP":(g_pLiveDir<0?"DOWN":"-"))+"   entry >= "+DoubleToString(InpP_MinScore,0)+"\n";
+         (g_pLiveDir>0?"UP":(g_pLiveDir<0?"DOWN":"-"))+"   entry >= "+DoubleToString(g_pThreshold,0)+(InpP_Adaptive?" (adaptive)":"")+"\n";
       s+="Pulse today: trades "+IntegerToString(g_pTradesToday)+"/"+IntegerToString(InpP_MaxTradesDay)+
          "  TP1 hit "+IntegerToString(g_pTP1Today)+"  losses "+IntegerToString(g_pLossToday)+
          "  streak "+IntegerToString(g_pLossStreak)+"\n";
