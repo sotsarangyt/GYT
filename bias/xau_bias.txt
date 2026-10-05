@@ -1,9 +1,9 @@
 # GYT Daily Macro Bias for XAUUSD (read by GYT_MultiEngine EA)
 # bias: BULL | BEAR | NEUTRAL | OFF      risk_mult: 0.0 - 1.0
 # valid_until: unix time (UTC). After this the EA treats the bias as stale.
-date=2026-10-01
+date=2026-10-05
 bias=BEAR
 risk_mult=0.75
-valid_until=1790942400
-valid_until_utc=2026-10-02 12:00
-note=US10Y 5.25% and DXY 101.37 (highest since July) cap gold near 4185 after multi-month lows; Oct hike odds fell below 40%. ISM today, NFP Fri.
+valid_until=1791288000
+valid_until_utc=2026-10-06 12:00
+note=NFP miss (29K) priced out an Oct hike but US10Y ~5.29% capped gold below 4200; second weekly loss, now ~4145. ISM services today, FOMC minutes Wed.

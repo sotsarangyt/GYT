@@ -1,27 +1,26 @@
-# 🧭 GYT Macro Brief — 1 តុលា 2026
+# 🧭 GYT Macro Brief — 5 តុលា 2026
 
-**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 0.75** · សុពលភាពដល់ 2 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
+**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 0.75** · សុពលភាពដល់ 6 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
 
 | កត្តា | ពិន្ទុ | មូលហេតុ |
 |---|---|---|
-| Fed | −1 | ប្រធាន Fed នៅតែតឹងរ៉ឹង ប៉ុន្តែឱកាសដំឡើងការប្រាក់ខែតុលាធ្លាក់ពី 70% មកក្រោម 40% ក្រោយទិន្នន័យខ្សោយ |
-| US 10Y Yield | −2 | បិទនៅ 5.25% ខ្ពស់បំផុតតាំងពីឆ្នាំ 2007 |
-| USD (DXY) | −2 | 101.37 ខ្ពស់បំផុតតាំងពីចុងខែកក្កដា |
+| Fed | 0 | NFP ខ្សោយ ធ្វើឱ្យផ្សារលែងរំពឹងការដំឡើងការប្រាក់ខែតុលា ប៉ុន្តែនៅតែរំពឹងដំឡើងខែធ្នូ |
+| US 10Y Yield | −2 | ~5.29% ខ្ពស់បំផុតក្នុងរយៈច្រើនឆ្នាំ ហើយនៅតែឡើង |
+| USD (DXY) | −1 | USD នៅតែរឹងមាំ |
 | Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | គ្មានព្រឹត្តិការណ៍ធំថ្មី |
-| និន្នាការមាស | −2 | ជិតកម្រិតទាបបំផុតក្នុងរយៈច្រើនខែ (~$4,185) ក្រោយធ្លាក់ពី ~$4,400 |
-| **សរុប** | **−7** | **BEAR** |
+| និន្នាការមាស | −2 | NFP រុញមាសឡើងលើ $4,200 មួយភ្លែត រួចធ្លាក់មកវិញ។ ធ្លាក់ ២ សប្តាហ៍ជាប់គ្នា ឥឡូវ ~$4,145 |
+| **សរុប** | **−5** | **BEAR** |
 
 **ព្រឹត្តិការណ៍សំខាន់ (ម៉ោងកម្ពុជា)**
-- ថ្ងៃនេះ 19:30: Initial Jobless Claims
-- ថ្ងៃនេះ 21:00: ISM Manufacturing PMI
-- **ស្អែក 19:30: NFP (Jobs Report)** ហើយ Logan (Fed) និយាយ។ ស្អែក risk_mult នឹងត្រូវកាត់មកត្រឹម 0.5
+- ថ្ងៃនេះ 21:00: ISM Services PMI
+- ថ្ងៃព្រហស្បតិ៍ 8 តុលា 01:00: FOMC Minutes (កំណត់ហេតុប្រជុំ Fed ខែកញ្ញា)
+- 14 តុលា 19:30: CPI
 
 **EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk 0.75× ហើយ Buy ប្រើ Risk 0.375× (ទល់នឹង Bias)។ News Shield ផ្អាកការបើកត្រេដថ្មី ±30 នាទី ជុំវិញព័ត៌មានខាងលើ។
 
 ប្រភព:
-- https://www.usagold.com/daily-precious-metals-market-report-september-30-2026/
-- https://www.riotimesonline.com/gold-silver-precious-metals-wednesday-september-30-2026
-- https://finance.yahoo.com/personal-finance/investing/article/gold-price-today-wednesday-september-30-2026-gold-edges-up-from-multi-month-lows-yesterday-110253067.html
-- https://roboforex.com/beginners/analytics/forex-forecast/commodities/xau-usd-gold-weekly-forecast-2026-09-28/
-- https://www.kiplinger.com/investing/economy/this-weeks-economic-calendar
-- https://therighttrader.com/economic-calendar/this-week
+- https://www.fxstreet.com/news/gold-fails-at-4-200-despite-nfp-miss-as-us-yields-climb-202610021803
+- https://www.kucoin.com/news/flash/u-s-nonfarm-payrolls-miss-estimates-gold-rises-then-falls-for-second-consecutive-week
+- https://tradingeconomics.com/commodity/gold
+- https://investinglive.com/news/week-ahead-ism-services-fed-minutes-and-canadian-jobs-lead-the-economic-calendar-be-aware/
+- https://fxstreet.com/analysis/forecasting-the-upcoming-week-focus-shifts-to-the-fomc-minutes-202610021803

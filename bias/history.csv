@@ -1,3 +1,4 @@
 date,bias,risk_mult,score,gold_price,us10y,dxy,key_events,note
 2026-09-30,BEAR,0.75,-4,4180,5.23,101.37,"Powell speaks Sep 30; NFP Oct 2","Hawkish Fed + yields at 2007 highs + strong USD; weak data = relief bounce only"
 2026-10-01,BEAR,0.75,-7,4185,5.25,101.37,"Jobless claims + ISM Mfg Oct 1; NFP Oct 2","Yields and USD at multi-month highs; gold near multi-month lows; cooling hike odds give only short relief"
+2026-10-05,BEAR,0.75,-5,4145,5.29,,"ISM Services Oct 5; FOMC minutes Oct 7","NFP miss gave only a brief spike above 4200; yields at highs keep pressure on gold"
