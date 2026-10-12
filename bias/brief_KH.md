@@ -1,25 +1,24 @@
-# 🧭 GYT Macro Brief — 6 តុលា 2026
+# 🧭 GYT Macro Brief — 12 តុលា 2026
 
-**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 0.75** · សុពលភាពដល់ 7 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
+**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 1.0** · សុពលភាពដល់ 13 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
 
 | កត្តា | ពិន្ទុ | មូលហេតុ |
 |---|---|---|
-| Fed | −1 | ISM Services Prices Paid ឡើងដល់ 77.9 (ពី 71.1) ដែលជាសញ្ញាអតិផរណា ធ្វើឱ្យ Fed អាចបន្តតឹងរ៉ឹង |
-| US 10Y Yield | −2 | 5.31% ហើយ 30Y ខ្ពស់បំផុតក្នុងរយៈ ២៤ ឆ្នាំ |
-| USD (DXY) | −1 | ~101.15 ជិតកម្រិតខ្ពស់បំផុតក្នុងរយៈ ៨ សប្តាហ៍ |
+| Fed | −1 | FOMC Minutes បង្ហាញថា Fed អាចដំឡើងការប្រាក់បន្ថែម ហើយផ្សាររំពឹងខ្លាំងថានឹងដំឡើងនៅខែធ្នូ |
+| US 10Y Yield | −2 | ~5.3% ខ្ពស់បំផុតតាំងពីឆ្នាំ 2002 |
+| USD (DXY) | −2 | ~102.3 ឡើងពី 101.15 កាលពីសប្តាហ៍មុន |
 | Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | គ្មានព្រឹត្តិការណ៍ធំថ្មី |
-| និន្នាការមាស | −2 | ~$4,130 ទាបជាងកំពូលឆ្នាំ 2026 ប្រហែល 26% ហើយនៅតែរសាត់ចុះ |
+| និន្នាការមាស | −1 | ដើរក្នុងចន្លោះ $4,120–4,210 ក្រោមខ្សែមធ្យមដែលកំពុងធ្លាក់ |
 | **សរុប** | **−6** | **BEAR** |
 
 **ព្រឹត្តិការណ៍សំខាន់ (ម៉ោងកម្ពុជា)**
-- ព្រហស្បតិ៍ 8 តុលា 01:00: FOMC Minutes
-- 14 តុលា 19:30: CPI
+- **ពុធ 14 តុលា 19:30: CPI ខែកញ្ញា** ព្រឹត្តិការណ៍ធំបំផុតនៃសប្តាហ៍នេះ។ ថ្ងៃនោះ risk_mult នឹងត្រូវកាត់មកត្រឹម 0.5
 
-**EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk 0.75× ហើយ Buy ប្រើ Risk 0.375× (ទល់នឹង Bias)។ News Shield ផ្អាកការបើកត្រេដថ្មី ±30 នាទី ជុំវិញព័ត៌មានខាងលើ។
+**EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk ពេញ 1.0× ហើយ Buy ប្រើ Risk 0.5× (ទល់នឹង Bias)។ News Shield ផ្អាកការបើកត្រេដថ្មី ±30 នាទី ជុំវិញព័ត៌មានធំៗ។
 
 ប្រភព:
-- https://discoveryalert.com/analysis/gold-price-analysis-treasury-yields-october-2026-2/
-- https://www.business-standard.com/amp/finance/personal-finance/gold-is-26-below-its-2026-peak-buy-now-or-wait-what-investors-should-do-126100600129_1.html
-- https://www.fxempire.com/forecasts/article/gold-forecast-the-usd-index-soars-to-new-2026-highs-1634558
-- https://www.gold.org/download/file/21217/WMM_5_Oct_2026_Out_of_the_ordinary.pdf
-- https://tradingeconomics.com/commodity/gold
+- https://www.fxstreet.com/news/gold-falls-as-us-dollar-treasury-yields-rebound-ahead-of-fed-minutes-202610071045
+- https://www.fxempire.com/forecasts/article/gold-and-silver-price-forecast-key-breakout-levels-to-watch-before-september-cpi-1637271
+- https://www.investing.com/economic-calendar/fomc-meeting-minutes-108
+- https://jamespolidori.substack.com/p/goldsilver-weekly-outlook-october
+- https://www.kitco.com/

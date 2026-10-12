@@ -1,9 +1,9 @@
 # GYT Daily Macro Bias for XAUUSD (read by GYT_MultiEngine EA)
 # bias: BULL | BEAR | NEUTRAL | OFF      risk_mult: 0.0 - 1.0
 # valid_until: unix time (UTC). After this the EA treats the bias as stale.
-date=2026-10-06
+date=2026-10-12
 bias=BEAR
-risk_mult=0.75
-valid_until=1791374400
-valid_until_utc=2026-10-07 12:00
-note=US10Y 5.31% and 30Y at 24-year highs, DXY ~101.15 near 8-week high, ISM services prices paid 77.9; gold ~4130 and 26% below its 2026 peak. FOMC minutes Wed.
+risk_mult=1.0
+valid_until=1791892800
+valid_until_utc=2026-10-13 12:00
+note=FOMC minutes lean to more tightening, Dec hike priced high; US10Y ~5.3% (highest since 2002), DXY ~102.3. Gold 4120-4210 range. CPI Wed Oct 14.
