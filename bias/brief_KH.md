@@ -1,25 +1,25 @@
-# 🧭 GYT Macro Brief — 13 តុលា 2026
+# 🧭 GYT Macro Brief — 14 តុលា 2026 (ថ្ងៃ CPI)
 
-**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 0.75** · សុពលភាពដល់ 14 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
+**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 0.5** · សុពលភាពដល់ 15 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
 
 | កត្តា | ពិន្ទុ | មូលហេតុ |
 |---|---|---|
-| Fed | −2 | តម្លៃប្រេងឡើងខ្លាំង ធ្វើឱ្យផ្សាររំពឹង 86% ថា Fed នឹងដំឡើងការប្រាក់មុនខែធ្នូ |
-| US 10Y Yield | −1 | ~5.24% ធ្លាក់បន្តិចពី 5.31% ប៉ុន្តែនៅតែខ្ពស់ខ្លាំង |
-| USD (DXY) | −2 | ~102.4 ជិតកម្រិតខ្ពស់បំផុតក្នុងរយៈ ១៨ ខែ |
-| Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | មានវិបត្តិប្រេង ប៉ុន្តែលុយរត់ចូល USD ជំនួសឱ្យមាស |
-| និន្នាការមាស | −1 | ងើបពី $4,070 មក ~$4,160–4,210 ប៉ុន្តែនៅក្រោមខ្សែមធ្យមដែលកំពុងធ្លាក់ |
-| **សរុប** | **−6** | **BEAR** |
+| Fed | −2 | Fed បង្ហាញសញ្ញាដំឡើងការប្រាក់ម្តងទៀត ហើយផ្សាររំពឹង 88% ថានឹងដំឡើងនៅខែធ្នូ |
+| US 10Y Yield | −1 | ~5.19% ធ្លាក់បន្តិច ប៉ុន្តែនៅតែខ្ពស់ |
+| USD (DXY) | −1 | ~102.3 ធ្លាក់បន្តិចពីកម្រិតខ្ពស់បំផុតក្នុងរយៈ ១៨ ខែ |
+| Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | ប្រេង Brent លើស $106 ធ្វើឱ្យបារម្ភអតិផរណា ប៉ុន្តែមិនបានជួយមាសទេ |
+| និន្នាការមាស | −1 | ~$4,150–4,190 ក្រោមខ្សែមធ្យមដែលកំពុងធ្លាក់ |
+| **សរុប** | **−5** | **BEAR** |
 
 **ព្រឹត្តិការណ៍សំខាន់ (ម៉ោងកម្ពុជា)**
-- **ស្អែក ពុធ 14 តុលា 19:30: CPI** ថ្ងៃនោះ risk_mult នឹងត្រូវកាត់មកត្រឹម 0.5
-- ព្រហស្បតិ៍ 15 តុលា 19:30: PPI និង Retail Sales
+- **ថ្ងៃនេះ 19:30: CPI ខែកញ្ញា** បើលទ្ធផលក្តៅជាងរំពឹង មាសទំនងជាធ្លាក់។ បើត្រជាក់ជាងរំពឹង មាសអាចងើបខ្លាំង
+- ស្អែក 19:30: PPI និង Retail Sales
 
-**EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk 0.75× ហើយ Buy ប្រើ Risk 0.375× (ទល់នឹង Bias)។ News Shield ផ្អាកការបើកត្រេដថ្មី ±30 នាទី ជុំវិញព័ត៌មានធំៗ។
+**EA នឹងធ្វើអ្វី:** Risk ត្រូវកាត់ពាក់កណ្តាល ព្រោះជាថ្ងៃ CPI។ Sell ប្រើ Risk 0.5× ហើយ Buy ប្រើ Risk 0.25×។ News Shield ផ្អាកការបើកត្រេដថ្មី ចន្លោះម៉ោង 19:00–20:00។
 
 ប្រភព:
-- https://www.vtmarkets.com/en-eu/live-updates/gold-holds-near-4163-as-investors-await-us-cpi-dollar-strength-caps-rally/
-- https://www.fxleaders.com/news/2026/10/12/gold-price-forecast-4227-breakout-cpi-fed-outlook/
-- https://www.fxstreet.com/news/gold-tumbles-as-oil-shock-fuels-us-dollar-rally-and-fed-hike-bets-202610121908
-- https://goldsilver.com/industry-news/goldsilver-news/gold-dip-dollar-strength-cpi-week/
-- https://learn.apmex.com/news/gold-rebounds-from-a-two-month-low-as-yields-not-riyadh-set-the-pace/
+- https://www.fxstreet.com/news/gold-draws-support-from-retreating-usd-holds-above-4-150-as-traders-await-us-cpi-report-202610140409
+- https://www.kitco.com/news/article/2026-10-13/gold-firms-dollar-yields-and-oil-retreat-cpi-kitco-am-report
+- https://fxempire.com/forecasts/article/gold-and-silver-price-forecast-fed-hike-risks-loom-ahead-of-cpi-1637861
+- https://www.investing.com/news/commodities-news/gold-holds-twoday-slide-as-fed-signals-one-more-hike-us-cpi-in-focus-4947854
+- https://www.fxstreet.com/news/gold-slides-on-us-yields-surge-ahead-of-cpi-202610131742
