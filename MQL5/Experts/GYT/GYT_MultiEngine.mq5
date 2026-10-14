@@ -16,7 +16,7 @@
 //|  No martingale, no grid, every trade has a stop loss.             |
 //+------------------------------------------------------------------+
 #property copyright "GYT"
-#property version   "1.21"
+#property version   "1.22"
 #property description "GYT Multi-Engine gold EA: regime-aware trend/pullback/range engines with risk brain and macro context."
 
 #include <Trade/Trade.mqh>
@@ -102,7 +102,7 @@ input double InpP_RiskPct          = 0.2;      // Risk per Pulse trade (% of bas
 input double InpP_MinScore         = 70;       // Max entry threshold (0-100); adaptive threshold never goes above
 input bool   InpP_Adaptive         = true;     // Adaptive threshold: enter on the strongest moves of recent bars
 input double InpP_TopPct           = 12.0;     // Adaptive: enter when score is in the top X% of recent bars
-input double InpP_ScoreFloor       = 55;       // Adaptive: never enter below this score
+input double InpP_ScoreFloor       = 60;       // Adaptive: never enter below this score
 input int    InpP_AdaptBars        = 144;      // Adaptive: number of recent bars (144 x M5 = 12 h)
 input double InpP_TP1_R            = 0.7;      // TP1 leg target (R multiple)
 input double InpP_SL_MinATR        = 0.8;      // Min stop (x ATR of signal TF)
@@ -116,6 +116,13 @@ input int    InpP_StartGMT         = 7;        // Pulse entries from (GMT hour)
 input int    InpP_EndGMT           = 20;       // Pulse entries until (GMT hour)
 input int    InpP_FlatGMT          = 21;       // Close all Pulse positions at (GMT hour)
 input int    InpP_MaxLossStreak    = 3;        // Stop Pulse for the day after N losses in a row
+input bool   InpP_TrendFilter      = true;     // Only trade with the H1 EMA50 trend
+input bool   InpP_RespectBias      = true;     // No trades against a fresh BULL/BEAR macro bias
+input double InpP_EntryRetrace     = 0.4;      // Limit entry at this pullback of the signal candle body (0 = market)
+input int    InpP_LimitBars        = 3;        // Cancel unfilled limit orders after N bars
+input int    InpP_CooldownBars     = 3;        // Bars to wait after a Pulse trade closes
+input int    InpP_LossCooldownBars = 6;        // Bars to wait after a losing Pulse trade
+input double InpP_MaxSpikeATR      = 3.0;      // Skip signal candles larger than x ATR (news spikes)
 input bool   InpP_Log              = true;     // Log every signal to MQL5/Files/GYT_pulse_log.csv
 
 input group "=== Market Context: News Shield ==="
@@ -212,6 +219,8 @@ int      g_pLiveDir       = 0;
 string   g_pLastSignal    = "none";
 double   g_pScores[];                  // recent closed-bar scores (oldest first)
 double   g_pThreshold     = 70.0;
+datetime g_pLastExit      = 0;
+bool     g_pLastExitLoss  = false;
 bool     g_isTester       = false;
 
 //==================================================================
@@ -1029,6 +1038,52 @@ void PulseStats()
       if(p>0) { g_pTP1Today++; g_pLossStreak=0; }
       else    { g_pLossToday++; g_pLossStreak++; }
      }
+   // most recent Pulse exit (either leg) for the cooldown
+   g_pLastExit=0; g_pLastExitLoss=false;
+   for(int i=total-1;i>=0;i--)
+     {
+      ulong t=HistoryDealGetTicket(i);
+      if(t==0 || HistoryDealGetString(t,DEAL_SYMBOL)!=_Symbol) continue;
+      long mg=HistoryDealGetInteger(t,DEAL_MAGIC);
+      if(mg!=InpMagic+ENG_P1 && mg!=InpMagic+ENG_P2) continue;
+      long entry=HistoryDealGetInteger(t,DEAL_ENTRY);
+      if(entry!=DEAL_ENTRY_OUT && entry!=DEAL_ENTRY_OUT_BY) continue;
+      g_pLastExit=(datetime)HistoryDealGetInteger(t,DEAL_TIME);
+      g_pLastExitLoss=(HistoryDealGetDouble(t,DEAL_PROFIT)<0);
+      break;
+     }
+  }
+
+int CountPulsePending()
+  {
+   int n=0;
+   for(int i=OrdersTotal()-1;i>=0;i--)
+     {
+      ulong t=OrderGetTicket(i);
+      if(t==0 || OrderGetString(ORDER_SYMBOL)!=_Symbol) continue;
+      long mg=OrderGetInteger(ORDER_MAGIC);
+      if(mg==InpMagic+ENG_P1 || mg==InpMagic+ENG_P2) n++;
+     }
+   return n;
+  }
+
+// delete Pulse limit orders that are too old (or all of them)
+void CleanPulsePending(const bool all)
+  {
+   int maxAge=InpP_LimitBars*PeriodSeconds(InpP_TF);
+   for(int i=OrdersTotal()-1;i>=0;i--)
+     {
+      ulong t=OrderGetTicket(i);
+      if(t==0 || OrderGetString(ORDER_SYMBOL)!=_Symbol) continue;
+      long mg=OrderGetInteger(ORDER_MAGIC);
+      if(mg!=InpMagic+ENG_P1 && mg!=InpMagic+ENG_P2) continue;
+      datetime setup=(datetime)OrderGetInteger(ORDER_TIME_SETUP);
+      if(all || TimeTradeServer()-setup>=maxAge)
+        {
+         trade.SetExpertMagicNumber(mg);
+         if(trade.OrderDelete(t)) Print("GYT Pulse: limit order removed (",all?"close all":"expired",")");
+        }
+     }
   }
 
 int CountPulse(const int engine)
@@ -1048,6 +1103,7 @@ void ClosePulse(const string reason)
       trade.SetExpertMagicNumber(mg);
       trade.PositionClose(t);
      }
+   CleanPulsePending(true);
    Print("GYT Pulse: closed all Pulse positions (",reason,")");
   }
 
@@ -1081,6 +1137,12 @@ bool CanOpenPulse(string &why)
    if(g_pLossStreak>=InpP_MaxLossStreak) { why="loss streak"; return false; }
    if(CountPulse(ENG_P1)>0) { why="TP1 leg open"; return false; }
    if(CountPulse(ENG_P2)>=2) { why="2 runners open"; return false; }
+   if(CountPulsePending()>0) { why="limit order pending"; return false; }
+   if(g_pLastExit>0)
+     {
+      int wait=(g_pLastExitLoss ? InpP_LossCooldownBars : InpP_CooldownBars);
+      if(TimeTradeServer()-g_pLastExit < wait*PeriodSeconds(InpP_TF)) { why="cooldown"; return false; }
+     }
    return true;
   }
 
@@ -1118,6 +1180,7 @@ void PulseUpdateThreshold(const double newest)
 void PulseOnNewBar()
   {
    PulseStats();
+   CleanPulsePending(false);
 
    // live meter for the panel (forming bar)
    string lp;
@@ -1126,7 +1189,7 @@ void PulseOnNewBar()
    // flatten time / Friday
    int h=GMTHour();
    if((h>=InpP_FlatGMT || (GMTDow()==5 && h>=InpFridayCloseGMT && InpFridayCloseGMT>=0)) &&
-      (CountPulse(ENG_P1)+CountPulse(ENG_P2))>0)
+      (CountPulse(ENG_P1)+CountPulse(ENG_P2)+CountPulsePending())>0)
       ClosePulse("end of pulse day");
 
    int dir; string parts;
@@ -1164,18 +1227,38 @@ void PulseOnNewBar()
    if(!Ok(atr) || atr<=0 || !Ok(ema)) return;
    if(MathAbs(c1-ema)>InpP_MaxExtATR*atr) { PulseLog(head+",skip:overextended,,,,"); g_pLastSignal+=" (skip: overextended)"; return; }
    if(HasOpposite(dir)) { PulseLog(head+",skip:opposite open,,,,"); g_pLastSignal+=" (skip: opposite open)"; return; }
+   if(h1-l1>InpP_MaxSpikeATR*atr) { PulseLog(head+",skip:spike,,,,"); g_pLastSignal+=" (skip: spike candle)"; return; }
+   if(InpP_TrendFilter)
+     {
+      double e1=Val(hEMAs_H1,0,1), e4=Val(hEMAs_H1,0,4), hc=iClose(_Symbol,PERIOD_H1,1);
+      int tdir=0;
+      if(Ok(e1) && Ok(e4)) { if(hc>e1 && e1>e4) tdir=1; else if(hc<e1 && e1<e4) tdir=-1; }
+      if(tdir!=dir) { PulseLog(head+",skip:against H1 trend,,,,"); g_pLastSignal+=" (skip: against H1 trend)"; return; }
+     }
+   if(InpP_RespectBias && InpUseMacroBias && !g_isTester && BiasFresh() &&
+      ((g_biasName=="BULL" && dir<0) || (g_biasName=="BEAR" && dir>0)))
+     { PulseLog(head+",skip:against bias,,,,"); g_pLastSignal+=" (skip: against "+g_biasName+" bias)"; return; }
 
    string ctx;
    double mult=ContextMult(dir,ctx);
    if(mult<InpMinRiskFactor) { PulseLog(head+",skip:context x"+DoubleToString(mult,2)+",,,,"); g_pLastSignal+=" (skip: context)"; return; }
 
    bool buy=(dir>0);
-   double price=buy ? SymbolInfoDouble(_Symbol,SYMBOL_ASK) : SymbolInfoDouble(_Symbol,SYMBOL_BID);
-   double sd=buy ? price-(l1-0.2*atr) : (h1+0.2*atr)-price;
    double pt=SymbolInfoDouble(_Symbol,SYMBOL_POINT);
    double minStop=(SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL)+5)*pt+Spread();
-   sd=MathMax(MathMin(MathMax(sd,InpP_SL_MinATR*atr),InpP_SL_MaxATR*atr),minStop);
    int digits=(int)SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
+   double mkt=buy ? SymbolInfoDouble(_Symbol,SYMBOL_ASK) : SymbolInfoDouble(_Symbol,SYMBOL_BID);
+   double o1=iOpen(_Symbol,InpP_TF,1);
+   // pullback entry: buy limit below / sell limit above the close of the signal candle
+   bool useLimit=false;
+   double price=mkt;
+   if(InpP_EntryRetrace>0)
+     {
+      double lim=NormalizeDouble(c1-dir*InpP_EntryRetrace*MathAbs(c1-o1),digits);
+      if(buy ? (lim<mkt-minStop) : (lim>mkt+minStop)) { price=lim; useLimit=true; }
+     }
+   double sd=buy ? price-(l1-0.2*atr) : (h1+0.2*atr)-price;
+   sd=MathMax(MathMin(MathMax(sd,InpP_SL_MinATR*atr),InpP_SL_MaxATR*atr),minStop);
    double sl =NormalizeDouble(buy ? price-sd : price+sd,digits);
    double tp1=NormalizeDouble(buy ? price+MathMax(InpP_TP1_R*sd,minStop) : price-MathMax(InpP_TP1_R*sd,minStop),digits);
 
@@ -1202,22 +1285,25 @@ void PulseOnNewBar()
       margin>AccountInfoDouble(ACCOUNT_MARGIN_FREE)*0.8) { PulseLog(head+",skip:margin,,,,"); return; }
 
    string tag=" s"+DoubleToString(score,0);
+   string c1s=InpComment+"-P-TP"+tag, c2s=InpComment+"-P-Run"+tag;
+   bool ok1, ok2=true;
    trade.SetExpertMagicNumber(InpMagic+ENG_P1);
-   bool ok1=buy ? trade.Buy(v1,_Symbol,0.0,sl,tp1,InpComment+"-P-TP"+tag) : trade.Sell(v1,_Symbol,0.0,sl,tp1,InpComment+"-P-TP"+tag);
-   bool ok2=true;
+   if(useLimit) ok1=buy ? trade.BuyLimit(v1,price,_Symbol,sl,tp1,ORDER_TIME_GTC,0,c1s) : trade.SellLimit(v1,price,_Symbol,sl,tp1,ORDER_TIME_GTC,0,c1s);
+   else         ok1=buy ? trade.Buy(v1,_Symbol,0.0,sl,tp1,c1s) : trade.Sell(v1,_Symbol,0.0,sl,tp1,c1s);
    if(ok1 && v2>0)
      {
       trade.SetExpertMagicNumber(InpMagic+ENG_P2);
-      ok2=buy ? trade.Buy(v2,_Symbol,0.0,sl,0.0,InpComment+"-P-Run"+tag) : trade.Sell(v2,_Symbol,0.0,sl,0.0,InpComment+"-P-Run"+tag);
+      if(useLimit) ok2=buy ? trade.BuyLimit(v2,price,_Symbol,sl,0.0,ORDER_TIME_GTC,0,c2s) : trade.SellLimit(v2,price,_Symbol,sl,0.0,ORDER_TIME_GTC,0,c2s);
+      else         ok2=buy ? trade.Buy(v2,_Symbol,0.0,sl,0.0,c2s) : trade.Sell(v2,_Symbol,0.0,sl,0.0,c2s);
      }
-   PulseLog(head+","+(ok1?"OPEN":"FAIL "+IntegerToString(trade.ResultRetcode()))+","+
+   PulseLog(head+","+(ok1?(useLimit?"LIMIT":"OPEN"):"FAIL "+IntegerToString(trade.ResultRetcode()))+","+
             DoubleToString(price,digits)+","+DoubleToString(sl,digits)+","+DoubleToString(tp1,digits)+","+
             DoubleToString(v1+v2,2));
    if(ok1)
      {
       g_pTradesToday++;
-      PrintFormat("GYT Pulse: %s score %.0f lots %.2f+%.2f SL=%.2f TP1=%.2f risk=$%.2f [%s]",
-                  buy?"BUY":"SELL",score,v1,v2,sl,tp1,(v1+v2)*lossPerLot,ctx);
+      PrintFormat("GYT Pulse: %s %s @ %.2f score %.0f lots %.2f+%.2f SL=%.2f TP1=%.2f risk=$%.2f [%s]",
+                  buy?"BUY":"SELL",useLimit?"LIMIT":"MARKET",price,score,v1,v2,sl,tp1,(v1+v2)*lossPerLot,ctx);
      }
    else Print("GYT Pulse: order failed ",trade.ResultRetcode()," ",trade.ResultRetcodeDescription());
    if(!ok2) Print("GYT Pulse: runner order failed ",trade.ResultRetcode());
@@ -1341,7 +1427,7 @@ void DrawPanel()
    string why="ready";
    bool can=CanOpen(why);
    string s="";
-   s+="GYT Multi-Engine v1.21  |  "+_Symbol+"\n";
+   s+="GYT Multi-Engine v1.22  |  "+_Symbol+"\n";
    s+="Regime: "+RegimeName(g_regime)+"  ER="+DoubleToString(g_er,2)+"  ATRx="+DoubleToString(g_atrRatio,2)+
       "  D1 dir="+(g_d1Dir>0?"UP":(g_d1Dir<0?"DOWN":"FLAT"))+"\n";
    s+="Entries: "+(InpTradeEnabled?(can?"ALLOWED":"BLOCKED - "+why):"DISABLED")+"\n";
