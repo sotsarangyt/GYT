@@ -1,9 +1,9 @@
 # GYT Daily Macro Bias for XAUUSD (read by GYT_MultiEngine EA)
 # bias: BULL | BEAR | NEUTRAL | OFF      risk_mult: 0.0 - 1.0
 # valid_until: unix time (UTC). After this the EA treats the bias as stale.
-date=2026-10-14
+date=2026-10-15
 bias=BEAR
-risk_mult=0.5
-valid_until=1792065600
-valid_until_utc=2026-10-15 12:00
-note=CPI day. Fed signals one more hike (88% Dec odds), Brent above 106 feeds inflation fears; US10Y ~5.19%, DXY ~102.3 off 18-month high. Gold ~4150-4190.
+risk_mult=0.75
+valid_until=1792152000
+valid_until_utc=2026-10-16 12:00
+note=Hot Sept CPI (3.7% y/y, 0.6% m/m) lifted Oct hike odds to 42% and sent gold near 4100; yields then fell 20bp and gold rebounded above 4150. PPI and retail sales today.

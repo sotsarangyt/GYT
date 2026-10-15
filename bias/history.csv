@@ -6,3 +6,4 @@ date,bias,risk_mult,score,gold_price,us10y,dxy,key_events,note
 2026-10-12,BEAR,1.0,-6,4150,5.30,102.3,"CPI Oct 14","Hawkish minutes + yields at 2002 highs + DXY up; gold ranging 4120-4210 below falling averages"
 2026-10-13,BEAR,0.75,-6,4180,5.24,102.43,"CPI Oct 14; PPI + retail sales Oct 15","Strong USD + oil-driven hike bets; gold bounce from 4070 still below falling averages"
 2026-10-14,BEAR,0.5,-5,4160,5.19,102.3,"CPI Oct 14; PPI + retail sales Oct 15","CPI day: hawkish Fed + oil-driven inflation risk; USD and yields easing slightly"
+2026-10-15,BEAR,0.75,-4,4150,5.1,,"PPI + retail sales Oct 15","Hot CPI = hawkish Fed; post-CPI yield spike reversed so gold bounced from one-week low"
