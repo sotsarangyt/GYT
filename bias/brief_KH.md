@@ -1,24 +1,23 @@
-# 🧭 GYT Macro Brief — 15 តុលា 2026
+# 🧭 GYT Macro Brief — 19 តុលា 2026
 
-**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 0.75** · សុពលភាពដល់ 16 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
+**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 1.0** · សុពលភាពដល់ 20 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
 
 | កត្តា | ពិន្ទុ | មូលហេតុ |
 |---|---|---|
-| Fed | −2 | CPI ក្តៅជាងរំពឹង (3.7% ក្នុងមួយឆ្នាំ, 0.6% ក្នុងមួយខែ) ធ្វើឱ្យឱកាសដំឡើងការប្រាក់ខែតុលាឡើងដល់ 42% |
-| US 10Y Yield | −1 | ឡើងខ្លាំងក្រោយ CPI រួចធ្លាក់មកវិញ 20bp ប៉ុន្តែនៅតែខ្ពស់ |
-| USD (DXY) | 0 | USD ចុះខ្សោយបន្តិចថ្ងៃនេះ |
-| Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | គ្មានព្រឹត្តិការណ៍ធំថ្មី |
-| និន្នាការមាស | −1 | ធ្លាក់ដល់ ~$4,100 (ទាបបំផុតក្នុងរយៈ ១ សប្តាហ៍) រួចងើបមកលើ $4,150 វិញ ប៉ុន្តែនៅក្រោមខ្សែមធ្យម |
+| Fed | −1 | ឱកាសដំឡើងការប្រាក់ខែតុលាធ្លាក់មក ~16% ប៉ុន្តែខែធ្នូនៅ ~89% |
+| US 10Y Yield | −1 | ~5.11% ធ្លាក់ពីកម្រិតខ្ពស់ ប៉ុន្តែនៅតែខ្ពស់ |
+| USD (DXY) | −1 | ~101.9 ចុះខ្សោយបន្តិច |
+| Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | ប្រេង Brent ~$110 ប៉ុន្តែមិនបានជួយមាសទេ |
+| និន្នាការមាស | −1 | ជាប់ក្នុងប្រអប់ $4,100–4,240 (~$4,166) ហើយធ្លាក់បន្តិចក្នុងសប្តាហ៍មុន |
 | **សរុប** | **−4** | **BEAR** |
 
 **ព្រឹត្តិការណ៍សំខាន់ (ម៉ោងកម្ពុជា)**
-- ថ្ងៃនេះ 19:30: PPI និង Retail Sales។ បើលទ្ធផលខ្លាំងជាងរំពឹង មាសទំនងជាធ្លាក់ម្តងទៀត
+- សប្តាហ៍នេះស្ងាត់ មិនមានទិន្នន័យធំៗ
+- ប្រជុំ FOMC: 27–28 តុលា (សេចក្តីសម្រេចចេញព្រឹក 29 តុលា ម៉ោង 01:00)
 
-**EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk 0.75× ហើយ Pulse មិនបើក Buy ទល់នឹង Bias ទេ (v1.22)។ News Shield ផ្អាកការបើកត្រេដថ្មី ចន្លោះម៉ោង 19:00–20:00។
+**EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk ពេញ 1.0× ហើយ Pulse មិនបើក Buy ទល់នឹង Bias ទេ។ មាសជាប់ក្នុងប្រអប់ ដូច្នេះ Engine C (Range) អាចចូលត្រេដច្រើនជាង Engine ផ្សេង។
 
 ប្រភព:
-- https://www.fxstreet.com/news/gold-crashes-below-4-100-as-hot-cpi-revives-october-fed-hike-bets-202610141757
-- https://www.kitco.com/news/article/2026-10-14/gold-silver-drop-hotter-cpi-revives-fed-rate-pressure-kitco-am-report
-- https://investinglive.com/commodities/gold-jumps-around-40-as-treasury-yields-retreat-from-post-cpi-high/
-- https://www.fxstreet.com/news/gold-rallies-above-4-150-as-us-bond-yields-and-usd-retreat-further-from-post-cpi-highs-202610150359
-- https://www.vtmarkets.com/en-eu/live-updates/gold-slips-towards-4102-as-hotter-us-inflation-lifts-dollar-and-treasury-yields/
+- https://financefeeds.com/gold-price-4166-week-ahead-oil-110-fed-october-meeting-bull-4330-bear-3970/
+- https://finance.yahoo.com/personal-finance/investing/article/gold-price-today-friday-october-16-2026-gold-lifts-as-treasury-yields-and-dollar-fall-back-110651322.html
+- https://www.cnbc.com/amp/2026/10/16/gold-gains-on-softer-dollar-but-heads-for-weekly-fall.html
