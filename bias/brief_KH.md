@@ -1,25 +1,26 @@
-# 🧭 GYT Macro Brief — 20 តុលា 2026
+# 🧭 GYT Macro Brief — 21 តុលា 2026
 
-**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 1.0** · សុពលភាពដល់ 21 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
+**Bias ថ្ងៃនេះ: BEAR (ធ្លាក់) · risk_mult = 1.0** · សុពលភាពដល់ 22 តុលា 2026 ម៉ោង 19:00 (កម្ពុជា)
 
 | កត្តា | ពិន្ទុ | មូលហេតុ |
 |---|---|---|
-| Fed | −1 | ផ្សាររំពឹង ~83% ថា Fed នឹងមិនប្តូរការប្រាក់សប្តាហ៍ក្រោយទេ ប៉ុន្តែការដំឡើងនៅចុងឆ្នាំនៅតែអាចកើតមាន |
-| US 10Y Yield | −1 | ~5.12% ឡើងវិញ ដោយសារតម្លៃប្រេងឡើង |
-| USD (DXY) | −1 | ~101.95 នៅរឹងមាំ |
-| Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | គ្មានព្រឹត្តិការណ៍ធំថ្មី |
-| និន្នាការមាស | −1 | ធ្លាក់ក្រោម $4,150 ក្នុងប្រអប់ $4,100–4,240 |
-| **សរុប** | **−4** | **BEAR** |
+| Fed | −2 | ផ្សាររំពឹង ~94% ថា Fed នឹងដំឡើងការប្រាក់ខែធ្នូ ទោះបីសប្តាហ៍ក្រោយទំនងរក្សាដដែល |
+| US 10Y Yield | −1 | ~5.14% ដោយសារប្រេងនៅជិត $110 |
+| USD (DXY) | −1 | ជិត 102 |
+| Risk-off / ភូមិសាស្ត្រនយោបាយ | 0 | ការបារម្ភពីការផ្គត់ផ្គង់ប្រេងនៅមជ្ឈិមបូព៌ា រុញ Yield ឡើង មិនមែនមាសទេ |
+| និន្នាការមាស | −1 | ~$4,120 កំពុងសាកល្បងបាតប្រអប់ $4,100–4,240 |
+| **សរុប** | **−5** | **BEAR** |
 
 **ព្រឹត្តិការណ៍សំខាន់ (ម៉ោងកម្ពុជា)**
 - ថ្ងៃនេះគ្មានទិន្នន័យអាមេរិកធំៗ
 - ប្រជុំ FOMC: 27–28 តុលា (សេចក្តីសម្រេចចេញព្រឹក 29 តុលា ម៉ោង 01:00)
+- ⚠️ បើមាសធ្លាក់បែកក្រោម $4,100 វាអាចធ្លាក់បន្តទៅរក ~$4,030
 
 **EA នឹងធ្វើអ្វី:** Sell ប្រើ Risk ពេញ 1.0× ហើយ Pulse មិនបើក Buy ទល់នឹង Bias ទេ។
 
 ប្រភព:
-- https://www.cnbc.com/2026/10/19/gold-edges-higher-on-softer-oil-fed-rate-outlook-in-focus.html
-- https://www.fxstreet.com/news/gold-stalls-below-4-200-as-fed-rate-hike-bets-limit-upside-202610191104
-- https://www.fxstreet.com/news/gold-sags-near-4-150-as-oil-fuels-us-yields-rebound-202610191818
-- https://www.fxstreet.com/news/gold-tumbles-below-4-150-amid-elevated-us-treasury-yields-202610192323
-- https://www.brecorder.com/news/40444996/gold-lower-as-firm-dollar-elevated-yields-weigh
+- https://financefeeds.com/gold-price-4120-yields-5-14-oil-110-december-hike-bull-4227-bear-4030/
+- https://finance.biggo.com/news/459d6a86-fd72-449b-9dca-78b00c2712a5
+- https://traderfactor.com/dollar-near-102-gold-slips-yields-stay-elevated/
+- https://world-today-journal.com/gold-prices-fall-to-4132-as-dollar-recovers/
+- https://www.uaebarq.ae/en/2026/10/20/gold-prices-fall-as-dollar-strengthens-us-treasury-yields-rise/
