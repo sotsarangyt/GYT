@@ -1,9 +1,9 @@
 # GYT Daily Macro Bias for XAUUSD (read by GYT_MultiEngine EA)
 # bias: BULL | BEAR | NEUTRAL | OFF      risk_mult: 0.0 - 1.0
 # valid_until: unix time (UTC). After this the EA treats the bias as stale.
-date=2026-10-22
+date=2026-10-23
 bias=BEAR
-risk_mult=1.0
-valid_until=1792756800
-valid_until_utc=2026-10-23 12:00
-note=Dec hike odds ~89%, US10Y ~5.1% stabilising, DXY ~102, Brent near 110. Gold bounced to ~4140 inside the 4100-4240 range. Jobless claims today, FOMC Oct 27-28.
+risk_mult=0.75
+valid_until=1793016000
+valid_until_utc=2026-10-26 12:00
+note=Gold broke below the 4100 range floor (-2.9% to ~4020) on Hormuz-driven oil spike and strong jobless claims; safe-haven flows went to Treasuries (10Y ~5.0%), DXY ~101.8. Dec hike ~89%. FOMC Oct 27-28.
